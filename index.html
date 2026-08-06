@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="RATING" content="RTA-5042-1996-1400-1577-RTA" />
+</head>
+<body>
+
+    <button onclick="Netomi.chat.openWidget()">Support</button>
+
+    <script>
+        (function () {
+
+            var ns = document.createElement('script');
+            ns.src = 'https://chatapps-qa-a.netomi.com/app/script.js';
+            ns.type = 'text/javascript';
+            ns.async = true;
+
+            ns.setAttribute(
+                'botRefId',
+                'a5addd98-2627-437b-899c-2f97ff2e2b18'
+            );
+
+            ns.setAttribute(
+                'enableEventQueue',
+                'true'
+            );
+
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(ns, s);
+
+            ns.onload = function () {
+
+                window.NETOMI_WEB_WIDGET.init(() => {
+                    /* add publish events here */
+                });
+
+                // Fires when the widget is fully loaded
+                window.NETOMI_WEB_WIDGET.onLoad(() => {
+
+                    console.log("Netomi widget loaded.");
+
+                    // ==========================
+                    // Update Bot Title & Subtitle
+                    // ==========================
+                    Netomi.chat.changeBotConfig({
+                        title: 'Updated Title 1',
+                        subtitle: 'Updated Subtitle 1'
+                    });
+
+                    // ==========================
+                    // Send Custom Widget Event
+                    // ==========================
+                    Netomi.chat.sendEvent({
+                        eventData: {
+                            eventType: 'WIDGET_EVENT',
+                            subType: 'GENERIC',
+                            eventInfo: {
+                                message: 'Host page triggered this event',
+                                source: 'test/index.html'
+                            }
+                        },
+                        eventName: 'INFO'
+                    });
+
+                });
+
+                // ==========================================
+                // ON_NEW_CONVERSATION Event
+                // ==========================================
+                Netomi.chat.onNewConversation(function (data) {
+
+                    console.log(
+                        '[ON_NEW_CONVERSATION] New conversation started! ConversationId:',
+                        data.conversationId
+                    );
+
+                    // Example API call
+                    setTimeout(function () {
+
+                        console.log(
+                            '[ON_NEW_CONVERSATION] Async work complete. Calling done() to unblock the widget.'
+                        );
+
+                        data.done();
+
+                    }, 1000);
+
+                });
+
+            };
+
+        })();
+    </script>
+
+</body>
+</html>
