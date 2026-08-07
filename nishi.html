@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Netomi sendEvent Test</title>
@@ -31,7 +32,7 @@
 
     script.onload = function () {
 
-        console.log("✅ SDK Loaded");
+        console.log("SDK Loaded");
 
 
         if (
@@ -40,7 +41,7 @@
         ) {
 
             console.error(
-                "❌ NETOMI_WEB_WIDGET.init not found"
+                "NETOMI_WEB_WIDGET.init not found."
             );
 
             return;
@@ -49,52 +50,62 @@
 
         window.NETOMI_WEB_WIDGET.init(function () {
 
-            console.log("✅ Widget Initialized");
+            console.log("Widget Initialized");
 
         });
 
 
-        if (
-            typeof window.NETOMI_WEB_WIDGET.onLoad !== "function"
-        ) {
-
-            console.error(
-                "❌ NETOMI_WEB_WIDGET.onLoad not found"
-            );
-
-            return;
-
-        }
-
-
         window.NETOMI_WEB_WIDGET.onLoad(function () {
 
-
-            console.log("✅ Widget Loaded");
+            console.log("Widget Loaded");
 
 
             console.log(
-                "Netomi:",
+                "Netomi =",
                 window.Netomi
             );
 
 
             console.log(
-                "Netomi.chat:",
+                "Netomi.chat =",
                 window.Netomi.chat
             );
 
 
-            console.log(
-                "Available chat methods:",
-                Object.getOwnPropertyNames(Netomi.chat)
-            );
+            /*
+             * Update bot title and subtitle
+             */
+            if (
+                Netomi.chat &&
+                typeof Netomi.chat.changeBotConfig === "function"
+            ) {
+
+                Netomi.chat.changeBotConfig({
+
+                    title: "Updated Title Nishi",
+
+                    subtitle: "Subtitle nishi singh"
+
+                });
+
+
+                console.log(
+                    "Bot configuration updated"
+                );
+
+            } else {
+
+                console.warn(
+                    "Netomi.chat.changeBotConfig is not available"
+                );
+
+            }
+
 
 
             /*
-              Send event only if SDK supports it
-            */
-
+             * Send custom event
+             */
             if (
                 Netomi.chat &&
                 typeof Netomi.chat.sendEvent === "function"
@@ -112,10 +123,10 @@
                         eventInfo: {
 
                             message:
-                                "Host page triggered this event",
+                                "Host page triggered this event- test nishi",
 
                             source:
-                                "test/index.html"
+                                "nishi site hosting repo"
 
                         }
 
@@ -127,22 +138,17 @@
 
 
                 console.log(
-                    "✅ sendEvent() invoked"
+                    "sendEvent() invoked"
                 );
 
 
             } else {
 
 
-                console.error(
-                    "❌ Netomi.chat.sendEvent is not available in this SDK"
+                console.warn(
+                    "Netomi.chat.sendEvent is not available"
                 );
 
-
-                console.log(
-                    "Available methods:",
-                    Object.getOwnPropertyNames(Netomi.chat)
-                );
 
             }
 
@@ -156,7 +162,7 @@
     script.onerror = function () {
 
         console.error(
-            "❌ Failed to load Netomi SDK"
+            "Failed to load SDK."
         );
 
     };
@@ -166,7 +172,6 @@
 
 
 })();
-
 </script>
 
 </body>
