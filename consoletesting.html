@@ -10,161 +10,186 @@
 <body>
 
     <button id="supportBtn" onclick="openNetomiWidget()">
-        Support
-    </button>
+    Support
+</button>
 
-    <script>
-        'use strict';
+<script>
+    'use strict';
 
-        /**
-         * Opens the Netomi widget safely.
-         */
-        function openNetomiWidget() {
-            if (
-                window.Netomi &&
-                Netomi.chat &&
-                typeof Netomi.chat.openWidget === "function"
-            ) {
-                Netomi.chat.openWidget();
-            } else {
-                console.warn("Netomi widget is not ready yet.");
-            }
+    /**
+     * Opens the Netomi widget safely.
+     */
+    function openNetomiWidget() {
+        if (
+            window.Netomi &&
+            Netomi.chat &&
+            typeof Netomi.chat.openWidget === "function"
+        ) {
+            Netomi.chat.openWidget();
+        } else {
+            console.warn("Netomi widget is not ready yet.");
         }
+    }
 
-        (function () {
+    (function () {
 
-            const script = document.createElement("script");
+        const script = document.createElement("script");
 
-            script.src = "https://chatapps-sg.netomi.com/app/script.js";
-            script.async = true;
-            script.type = "text/javascript";
+        script.src = "https://chatapps-sg.netomi.com/app/script.js";
+        script.async = true;
+        script.type = "text/javascript";
 
-            script.setAttribute(
-                "botRefId",
-                "03e95222-eeb4-4c3c-a0b7-e5e8c6768f68"
-            );
+        script.setAttribute(
+            "botRefId",
+            "03e95222-eeb4-4c3c-a0b7-e5e8c6768f68"
+        );
 
-            script.setAttribute(
-                "enableEventQueue",
-                "true"
-            );
+        script.setAttribute(
+            "enableEventQueue",
+            "true"
+        );
 
-            script.onload = function () {
+        script.onload = function () {
 
-                console.log("✅ Netomi SDK loaded.");
+            console.log("✅ Netomi SDK loaded.");
 
-                // Check whether NETOMI_WEB_WIDGET exists
-                if (
-                    !window.NETOMI_WEB_WIDGET ||
-                    typeof window.NETOMI_WEB_WIDGET.init !== "function"
-                ) {
-                    console.error(
-                        "NETOMI_WEB_WIDGET is unavailable. Check the SDK version or botRefId."
-                    );
+            // Check whether NETOMI_WEB_WIDGET exists
+            if (
+                !window.NETOMI_WEB_WIDGET ||
+                typeof window.NETOMI_WEB_WIDGET.init !== "function"
+            ) {
+                console.error(
+                    "NETOMI_WEB_WIDGET is unavailable. Check the SDK version or botRefId."
+                );
 
-                    console.log("Available globals:", {
-                        Netomi: window.Netomi,
-                        NETOMI_WEB_WIDGET: window.NETOMI_WEB_WIDGET
-                    });
+                console.log("Available globals:", {
+                    Netomi: window.Netomi,
+                    NETOMI_WEB_WIDGET: window.NETOMI_WEB_WIDGET
+                });
 
-                    return;
-                }
+                return;
+            }
 
-                // Initialize widget
-                window.NETOMI_WEB_WIDGET.init(function () {
+            // Initialize widget
+            window.NETOMI_WEB_WIDGET.init(function () {
 
-                    console.log("✅ Netomi widget initialized.");
+                console.log("✅ Netomi widget initialized.");
+
+            });
+
+            // Wait until widget is fully loaded
+            if (typeof window.NETOMI_WEB_WIDGET.onLoad === "function") {
+
+                window.NETOMI_WEB_WIDGET.onLoad(function () {
+
+                    console.log("✅ Netomi widget fully loaded.");
+
+                    if (!window.Netomi || !Netomi.chat) {
+                        console.error("Netomi.chat is unavailable.");
+                        return;
+                    }
+
+                    // User message
+                    if (typeof Netomi.chat.onUserMessageSent === "function") {
+                        Netomi.chat.onUserMessageSent(function (data) {
+                            console.log("USER_MESSAGE_SENT", data);
+                        });
+                    }
+
+                    // VA response
+                    if (typeof Netomi.chat.onVaResponseReceived === "function") {
+                        Netomi.chat.onVaResponseReceived(function (data) {
+
+                            console.log("VA_RESPONSE_RECEIVED", data);
+
+                            // Send custom event after every VA response
+                            if (typeof Netomi.chat.sendEvent === "function") {
+
+                                const eventPayload = {
+                                    eventData: {
+                                        eventType: "WIDGET_EVENT",
+                                        subType: "GENERIC",
+                                        eventInfo: {
+                                            message: "Host page triggered this event",
+                                            source: "test/index.html"
+                                        }
+                                    },
+                                    eventName: "INFO"
+                                };
+
+                                console.log("Sending custom event:", eventPayload);
+
+                                Netomi.chat.sendEvent(eventPayload);
+
+                            } else {
+                                console.warn("Netomi.chat.sendEvent is unavailable.");
+                            }
+
+                        });
+                    }
+
+                    // Agent response
+                    if (typeof Netomi.chat.onAgentResponseReceived === "function") {
+                        Netomi.chat.onAgentResponseReceived(function (data) {
+                            console.log("AGENT_RESPONSE_RECEIVED", data);
+                        });
+                    }
+
+                    // New conversation
+                    if (typeof Netomi.chat.onNewConversation === "function") {
+
+                        Netomi.chat.onNewConversation(function (data) {
+
+                            console.log(
+                                "[ON_NEW_CONVERSATION] Conversation ID:",
+                                data.conversationId
+                            );
+
+                            // Example async work
+                            setTimeout(function () {
+
+                                console.log(
+                                    "[ON_NEW_CONVERSATION] Async work completed."
+                                );
+
+                                if (
+                                    data &&
+                                    typeof data.done === "function"
+                                ) {
+                                    data.done();
+                                }
+
+                            }, 1000);
+
+                        });
+
+                    }
 
                 });
 
-                // Wait until widget is fully loaded
-                if (typeof window.NETOMI_WEB_WIDGET.onLoad === "function") {
-
-                    window.NETOMI_WEB_WIDGET.onLoad(function () {
-
-                        console.log("✅ Netomi widget fully loaded.");
-
-                        if (!window.Netomi || !Netomi.chat) {
-                            console.error("Netomi.chat is unavailable.");
-                            return;
-                        }
-
-                        // User message
-                        if (typeof Netomi.chat.onUserMessageSent === "function") {
-                            Netomi.chat.onUserMessageSent(function (data) {
-                                console.log("USER_MESSAGE_SENT", data);
-                            });
-                        }
-
-                        // VA response
-                        if (typeof Netomi.chat.onVaResponseReceived === "function") {
-                            Netomi.chat.onVaResponseReceived(function (data) {
-                                console.log("VA_RESPONSE_RECEIVED", data);
-                            });
-                        }
-
-                        // Agent response
-                        if (typeof Netomi.chat.onAgentResponseReceived === "function") {
-                            Netomi.chat.onAgentResponseReceived(function (data) {
-                                console.log("AGENT_RESPONSE_RECEIVED", data);
-                            });
-                        }
-
-                        // New conversation
-                        if (typeof Netomi.chat.onNewConversation === "function") {
-
-                            Netomi.chat.onNewConversation(function (data) {
-
-                                console.log(
-                                    "[ON_NEW_CONVERSATION] Conversation ID:",
-                                    data.conversationId
-                                );
-
-                                // Example async work
-                                setTimeout(function () {
-
-                                    console.log(
-                                        "[ON_NEW_CONVERSATION] Async work completed."
-                                    );
-
-                                    if (
-                                        data &&
-                                        typeof data.done === "function"
-                                    ) {
-                                        data.done();
-                                    }
-
-                                }, 1000);
-
-                            });
-
-                        }
-
-                    });
-
-                } else {
-                    console.warn(
-                        "NETOMI_WEB_WIDGET.onLoad() is unavailable."
-                    );
-                }
-
-            };
-
-            script.onerror = function () {
-
-                console.error(
-                    "❌ Failed to load Netomi SDK from:",
-                    script.src
+            } else {
+                console.warn(
+                    "NETOMI_WEB_WIDGET.onLoad() is unavailable."
                 );
+            }
 
-            };
+        };
 
-            // Append script safely
-            (document.head || document.body).appendChild(script);
+        script.onerror = function () {
 
-        })();
+            console.error(
+                "❌ Failed to load Netomi SDK from:",
+                script.src
+            );
 
-    </script>
+        };
 
-</body>
+        // Append script safely
+        (document.head || document.body).appendChild(script);
+
+    })();
+
+</script>
+
+    </body>
 </html>
