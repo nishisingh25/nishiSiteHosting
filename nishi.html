@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Netomi sendEvent Test</title>
+</head>
+
+<body>
+
+<script>
+"use strict";
+
+(function () {
+
+    const script = document.createElement("script");
+
+    script.src = "https://chatapps-qa-a.netomi.com/app/script.js";
+    script.async = true;
+    script.type = "text/javascript";
+
+    script.setAttribute(
+        "botRefId",
+        "a5addd98-2627-437b-899c-2f97ff2e2b18"
+    );
+
+    script.setAttribute(
+        "enableEventQueue",
+        "true"
+    );
+
+
+    script.onload = function () {
+
+        console.log("✅ SDK Loaded");
+
+
+        if (
+            !window.NETOMI_WEB_WIDGET ||
+            typeof window.NETOMI_WEB_WIDGET.init !== "function"
+        ) {
+
+            console.error(
+                "❌ NETOMI_WEB_WIDGET.init not found"
+            );
+
+            return;
+        }
+
+
+        window.NETOMI_WEB_WIDGET.init(function () {
+
+            console.log("✅ Widget Initialized");
+
+        });
+
+
+        if (
+            typeof window.NETOMI_WEB_WIDGET.onLoad !== "function"
+        ) {
+
+            console.error(
+                "❌ NETOMI_WEB_WIDGET.onLoad not found"
+            );
+
+            return;
+
+        }
+
+
+        window.NETOMI_WEB_WIDGET.onLoad(function () {
+
+
+            console.log("✅ Widget Loaded");
+
+
+            console.log(
+                "Netomi:",
+                window.Netomi
+            );
+
+
+            console.log(
+                "Netomi.chat:",
+                window.Netomi.chat
+            );
+
+
+            console.log(
+                "Available chat methods:",
+                Object.getOwnPropertyNames(Netomi.chat)
+            );
+
+
+            /*
+              Send event only if SDK supports it
+            */
+
+            if (
+                Netomi.chat &&
+                typeof Netomi.chat.sendEvent === "function"
+            ) {
+
+
+                Netomi.chat.sendEvent({
+
+                    eventData: {
+
+                        eventType: "WIDGET_EVENT",
+
+                        subType: "GENERIC",
+
+                        eventInfo: {
+
+                            message:
+                                "Host page triggered this event",
+
+                            source:
+                                "test/index.html"
+
+                        }
+
+                    },
+
+                    eventName: "INFO"
+
+                });
+
+
+                console.log(
+                    "✅ sendEvent() invoked"
+                );
+
+
+            } else {
+
+
+                console.error(
+                    "❌ Netomi.chat.sendEvent is not available in this SDK"
+                );
+
+
+                console.log(
+                    "Available methods:",
+                    Object.getOwnPropertyNames(Netomi.chat)
+                );
+
+            }
+
+
+        });
+
+
+    };
+
+
+    script.onerror = function () {
+
+        console.error(
+            "❌ Failed to load Netomi SDK"
+        );
+
+    };
+
+
+    document.head.appendChild(script);
+
+
+})();
+
+</script>
+
+</body>
+</html>
