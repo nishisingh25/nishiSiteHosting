@@ -59,46 +59,25 @@
 
             console.log("Widget Loaded");
 
+            console.log("Netomi =",window.Netomi);
 
-            console.log(
-                "Netomi =",
-                window.Netomi
-            );
+            console.log("Netomi.chat =",window.Netomi.chat);
 
 
-            console.log(
-                "Netomi.chat =",
-                window.Netomi.chat
-            );
-
-
-            /*
+            /* 
              * Update bot title and subtitle
              */
-            if (
-                Netomi.chat &&
-                typeof Netomi.chat.changeBotConfig === "function"
-            ) {
-
+            if (Netomi.chat && typeof Netomi.chat.changeBotConfig === "function") {
                 Netomi.chat.changeBotConfig({
-
                     title: "Updated Title Nishi",
-
-                    subtitle: "Subtitle nishi singh"
-
+                    subtitle: ""
                 });
 
 
-                console.log(
-                    "Bot configuration updated"
-                );
+                console.log("Bot configuration updated");
 
             } else {
-
-                console.warn(
-                    "Netomi.chat.changeBotConfig is not available"
-                );
-
+                console.warn("Netomi.chat.changeBotConfig is not available");
             }
 
 
@@ -106,67 +85,36 @@
             /*
              * Send custom event
              */
-            if (
-                Netomi.chat &&
-                typeof Netomi.chat.sendEvent === "function"
-            ) {
-
+            if (Netomi.chat && typeof Netomi.chat.sendEvent === "function") {
 
                 Netomi.chat.sendEvent({
 
                     eventData: {
-
                         eventType: "WIDGET_EVENT",
-
                         subType: "GENERIC",
-
                         eventInfo: {
-
-                            message:
-                                "Host page triggered this event- test nishi",
-
-                            source:
-                                "nishi site hosting repo"
-
+                            message:"Host page triggered this event- test nishi",
+                            source:"nishi site hosting repo"
                         }
-
                     },
 
                     eventName: "INFO"
 
                 });
 
-
-                console.log(
-                    "sendEvent() invoked"
-                );
-
-
+                console.log("sendEvent() invoked" );
             } else {
 
-
-                console.warn(
-                    "Netomi.chat.sendEvent is not available"
-                );
-
-
+                console.warn("Netomi.chat.sendEvent is not available");
             }
-
-
         });
-
-
     };
 
 
     script.onerror = function () {
 
-        console.error(
-            "Failed to load SDK."
-        );
-
-    };
-
+        console.error("Failed to load SDK.");
+};
 
     document.head.appendChild(script);
 
