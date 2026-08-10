@@ -10,14 +10,14 @@
   (function() {
     var ns = document.createElement('script');
     ns.src = ('https://chatapps-qa-a.netomi.com/app/script.js');ns.type = 'text/javascript'; ns.async = true;
-    ns.setAttribute('botRefId', '47753183-8c01-4d49-bcfe-795770efc2a4');
+    ns.setAttribute('botRefId', '3d51f888-5c9a-4e35-bd86-b4cb8cd00f12');
    ns.setAttribute('enableEventQueue', 'true');
    
     var s = document.getElementsByTagName('script')[0];s.parentNode.insertBefore(ns, s);
     ns.onload = function () {
 //      window.Netomi.chat.init(() => {
 //Netomi.chat.onLoad(() => {
-  //      authenticate();
+       authenticate();
   //    })
  
     }})();
@@ -48,7 +48,7 @@
       headers: {
         'Content-Type': 'application/json',
         'x-token-expiry': '1m',
-        'x-bot-ref-id':'47753183-8c01-4d49-bcfe-795770efc2a4',
+        'x-bot-ref-id':'3d51f888-5c9a-4e35-bd86-b4cb8cd00f12',
         'x-user-details': JSON.stringify({"uname": "John", "externalId": "random@random1", "metadata": {
           "Name": "John Doe",
           "ID": "NET9879",
