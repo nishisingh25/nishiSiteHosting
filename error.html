@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+
+  <script>
+
+  (function() {
+    var ns = document.createElement('script');
+    ns.src = ('https://chatapps-qa-a.netomi.com/app/script.js');ns.type = 'text/javascript'; ns.async = true;
+    ns.setAttribute('botRefId', '47753183-8c01-4d49-bcfe-795770efc2a4');
+   ns.setAttribute('enableEventQueue', 'true');
+   
+    var s = document.getElementsByTagName('script')[0];s.parentNode.insertBefore(ns, s);
+    ns.onload = function () {
+//      window.Netomi.chat.init(() => {
+//Netomi.chat.onLoad(() => {
+  //      authenticate();
+  //    })
+ 
+    }})();
+
+  let reAuthenticateIntervalId = ''
+  async function authenticate() {
+      const token = await fetchToken()
+      if(token != '') {
+        Netomi.chat.login(token)
+      }
+      
+      reAuthenticateIntervalId = setInterval(() => {
+        Netomi.chat.authenticate(async sendTokenToNetomi => {
+          const token = await fetchToken()
+          if(token != '') {
+            sendTokenToNetomi(token, handleAuthError);
+          }
+        })
+      },55000)
+
+
+  }    
+
+
+  async function fetchToken(){
+    const tokenApiCall = await fetch('https://chatapps-qa-a.netomi.com/api/fetchJWT',  {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-token-expiry': '1m',
+        'x-bot-ref-id':'47753183-8c01-4d49-bcfe-795770efc2a4',
+        'x-user-details': JSON.stringify({"uname": "John", "externalId": "random@random1", "metadata": {
+          "Name": "John Doe",
+          "ID": "NET9879",
+          "Organization": "ABCSamples",
+          "curTime":new Date().toLocaleTimeString(),
+          "Location": {
+            "City": "Chicago",
+            "State": "Illinois"
+          }
+        }})
+      }})
+    const {token} = await tokenApiCall.json()
+
+    console.log(token);
+    return token;
+  }
+
+  function handleAuthError() {
+    /*
+  Clients will perform necessary actions in this function, which will be called by netomi upon token expiration or not receiving a refresh token.
+*/
+    console.log('handleAuthError')
+  }
+
+
+  function endAuth() {
+    clearInterval(reAuthenticateIntervalId)
+    Netomi.chat.logout();
+
+  }
+</script>
+</head>
+<body>
+
+
+</body>
+</html>
+
+
