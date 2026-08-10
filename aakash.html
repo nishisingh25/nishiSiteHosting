@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Standards" />
+  <title>Web Chat</title>
+</head>
+
+<body>
+  <button type="button" onclick="handleAuth()">Start Authentication</button>
+  <button type="button" onclick="endAuth()">Clear Authentication</button>
+
+  <script>
+    (function () {
+      var ns = document.createElement("script");
+
+      ns.src = "https://chatapps-qa-a.netomi.com/app/script.js";
+      ns.type = "text/javascript";
+      ns.async = true;
+
+      ns.setAttribute(
+        "botRefId",
+        "47753183-8c01-4d49-bcfe-795770efc2a4"
+      );
+
+      ns.setAttribute("enableEventQueue", "true");
+      ns.setAttribute("debug", "true");
+
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(ns, s);
+
+      ns.onload = function () {
+        console.log("Netomi script loaded");
+      };
+    })();
+
+    let reAuthenticateIntervalId = null;
+
+    /*
+     * ============================================================
+     * AUTHENTICATION
+     * ============================================================
+     */
+
+    async function handleAuth() {
+      try {
+        /*
+         * Fetch a new JWT for token renewal.
+         */
+        async function renewToken() {
+          const tokenApiCall = await fetch(
+            "https://chatapps-qa-a.netomi.com/api/fetchJWT",
+            {
+              method: "POST",
+              headers: {
+                href:
+                  "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+
+                "Content-Type": "application/json",
+
+                "x-token-expiry": "10m",
+
+                "x-bot-ref-id":
+                  "47753183-8c01-4d49-bcfe-795770efc2a4",
+
+                "x-user-details": JSON.stringify({
+                  name: "Revan Shasti",
+                  externalId: "revan@gmail.com"
+                })
+              }
+            }
+          );
+
+          const { token } = await tokenApiCall.json();
+
+          return token;
+        }
+
+        /*
+         * Initial JWT request.
+         */
+        const tokenApiCall = await fetch(
+          "https://chatapps-qa-a.netomi.com/api/fetchJWT",
+          {
+            method: "POST",
+            headers: {
+              href:
+                "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+
+              "Content-Type": "application/json",
+
+              "x-token-expiry": "10m",
+
+              "x-bot-ref-id":
+                "47753183-8c01-4d49-bcfe-795770efc2a4",
+
+              "x-user-details": JSON.stringify({
+                name: "Revan Shasti",
+                externalId: "revan@gmail.com"
+              })
+            }
+          }
+        );
+
+        const { token } = await tokenApiCall.json();
+
+        console.log("Initial JWT received:", token);
+
+        /*
+         * Login using the new Netomi.chat API.
+         */
+        if (token) {
+          Netomi.chat.login(token);
+        }
+
+        /*
+         * Prevent duplicate authentication intervals.
+         */
+        if (reAuthenticateIntervalId) {
+          clearInterval(reAuthenticateIntervalId);
+        }
+
+        /*
+         * Re-authenticate every 5 minutes.
+         */
+        reAuthenticateIntervalId = setInterval(() => {
+          Netomi.chat.authenticate(async (sendTokenToNetomi) => {
+            try {
+              const tokenApiCall = await fetch(
+                "https://chatapps-qa-a.netomi.com/api/fetchJWT",
+                {
+                  method: "POST",
+                  headers: {
+                    href:
+                      "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+
+                    "Content-Type": "application/json",
+
+                    "x-token-expiry": "10m",
+
+                    "x-bot-ref-id":
+                      "47753183-8c01-4d49-bcfe-795770efc2a4",
+
+                    "x-user-details": JSON.stringify({
+                      name: "Revan Shasti",
+                      externalId: "revan@gmail.com"
+                    })
+                  }
+                }
+              );
+
+              const tokenResp = await tokenApiCall.json();
+
+              console.log("Refreshed JWT received:", tokenResp);
+
+              sendTokenToNetomi(
+                tokenResp,
+                renewToken
+              );
+            } catch (error) {
+              console.error(
+                "Error refreshing authentication token:",
+                error
+              );
+            }
+          });
+        }, 300000);
+
+        console.log("Authentication started successfully");
+      } catch (error) {
+        console.error(
+          "Authentication failed:",
+          error
+        );
+      }
+    }
+
+    /*
+     * ============================================================
+     * LOGOUT
+     * ============================================================
+     */
+
+    function endAuth() {
+      if (reAuthenticateIntervalId) {
+        clearInterval(reAuthenticateIntervalId);
+        reAuthenticateIntervalId = null;
+      }
+
+      if (
+        typeof Netomi !== "undefined" &&
+        Netomi.chat
+      ) {
+        Netomi.chat.logout();
+      }
+
+      console.log("Authentication cleared");
+    }
+
+    /*
+     * ============================================================
+     * MANUAL LOGIN
+     * ============================================================
+     */
+
+    async function manualLogin() {
+      try {
+        const tokenApiCall = await fetch(
+          "https://chatapps-qa-a.netomi.com/api/fetchJWT",
+          {
+            method: "POST",
+            headers: {
+              href:
+                "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+
+              "Content-Type": "application/json",
+
+              "x-token-expiry": "10m",
+
+              "x-bot-ref-id":
+                "47753183-8c01-4d49-bcfe-795770efc2a4",
+
+              "x-user-details": JSON.stringify({
+                name: "Revan Shasti",
+                externalId: "revan@gmail.com"
+              })
+            }
+          }
+        );
+
+        const { token } = await tokenApiCall.json();
+
+        if (token) {
+          Netomi.chat.login(token);
+        }
+      } catch (error) {
+        console.error(
+          "Manual login failed:",
+          error
+        );
+      }
+    }
+
+    /*
+     * ============================================================
+     * CLEAR NETOMI LOCAL AUTHENTICATION
+     * ============================================================
+     */
+
+    function clearAuth() {
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("net_"))
+        .forEach((key) => {
+          localStorage.removeItem(key);
+        });
+
+      document.cookie
+        .split(";")
+        .forEach((cookie) => {
+          const name = cookie.split("=")[0].trim();
+
+          if (name.startsWith("net_")) {
+            document.cookie =
+              `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          }
+        });
+
+      location.reload();
+    }
+  </script>
+
+</body>
+</html>
