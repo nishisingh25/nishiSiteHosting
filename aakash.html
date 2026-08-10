@@ -4,26 +4,48 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="IE=Standards" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <meta
+    http-equiv="X-UA-Compatible"
+    content="IE=Standards"
+  />
 
   <title>Netomi Web Chat</title>
 </head>
 
 <body>
 
-  <button type="button" onclick="handleAuth()">
-    Start Authentication
+<button
+type="button"
+onclick="handleAuth()"
+
+>
+
+```
+Start Authentication
+```
+
   </button>
 
-  <button type="button" onclick="endAuth()">
-    Clear Authentication
+<button
+type="button"
+onclick="endAuth()"
+
+>
+
+```
+Clear Authentication
+```
+
   </button>
 
   <script>
     /*
      * ============================================================
-     * NETOMI CONFIGURATION
+     * CONFIGURATION
      * ============================================================
      */
 
@@ -31,19 +53,25 @@
       "47753183-8c01-4d49-bcfe-795770efc2a4";
 
     const SCRIPT_URL =
-      "https://chatapps-qa-a.netomi.com/app/script.js";
+      "/script.js";
 
     const JWT_URL =
       "/api/fetchJWT";
 
     const AUTH_PAGE =
-      "https://github.com/nishisingh25/nishiSiteHosting/edit/main/aakash.html";
+      "https://revanshasti.github.io/Hosting-sites/Authentication.html";
 
 
     /*
      * ============================================================
-     * LOAD NETOMI SCRIPT
+     * NETOMI SCRIPT
      * ============================================================
+     *
+     * IMPORTANT:
+     * /script.js must be served by the webpack-dev-server.
+     *
+     * This is the same LOCAL setup used by your original
+     * NET-65437 reproduction page.
      */
 
     (function () {
@@ -59,7 +87,7 @@
       );
 
       /*
-       * Required for the local webpack setup.
+       * Required by the local webpack setup.
        */
       ns.setAttribute(
         "debug",
@@ -67,7 +95,7 @@
       );
 
       /*
-       * Enable Netomi event queue.
+       * Enable event queue.
        */
       ns.setAttribute(
         "enableEventQueue",
@@ -84,19 +112,31 @@
 
       ns.onload = function () {
         console.log(
-          "Netomi script loaded successfully."
+          "[Netomi] script.js loaded"
         );
 
         console.log(
-          "Bot Ref ID:",
+          "[Netomi] botRefId:",
           BOT_REF_ID
+        );
+
+        console.log(
+          "[Netomi] Waiting for Netomi.chat..."
         );
       };
 
-      ns.onerror = function (error) {
+      ns.onerror = function (event) {
         console.error(
-          "Unable to load /script.js",
-          error
+          "[Netomi] Unable to load /script.js"
+        );
+
+        console.error(
+          "[Netomi] Make sure this page is being served by the webpack-dev-server."
+        );
+
+        console.error(
+          "[Netomi] Current page:",
+          window.location.href
         );
       };
     })();
@@ -113,14 +153,19 @@
 
     /*
      * ============================================================
-     * FETCH JWT TOKEN
+     * FETCH JWT
      * ============================================================
      */
 
     async function fetchToken() {
       try {
 
-        const tokenApiCall = await fetch(
+        console.log(
+          "[Auth] Requesting JWT..."
+        );
+
+
+        const response = await fetch(
           JWT_URL,
           {
             method: "POST",
@@ -147,29 +192,35 @@
         );
 
 
-        if (!tokenApiCall.ok) {
+        if (!response.ok) {
           throw new Error(
-            `JWT API returned ${tokenApiCall.status} ${tokenApiCall.statusText}`
+            `JWT API returned ${response.status} ${response.statusText}`
           );
         }
 
 
-        const response =
-          await tokenApiCall.json();
+        const data =
+          await response.json();
+
+
+        if (!data.token) {
+          throw new Error(
+            "JWT API response does not contain a token."
+          );
+        }
 
 
         console.log(
-          "JWT response received:",
-          response
+          "[Auth] JWT received successfully."
         );
 
 
-        return response.token || "";
+        return data.token;
 
       } catch (error) {
 
         console.error(
-          "Failed to fetch JWT:",
+          "[Auth] JWT request failed:",
           error
         );
 
@@ -188,14 +239,18 @@
       try {
 
         /*
-         * Make sure Netomi is available.
+         * Make sure Netomi is loaded.
          */
         if (
           typeof Netomi === "undefined" ||
           !Netomi.chat
         ) {
           console.error(
-            "Netomi.chat is not available yet."
+            "[Auth] Netomi.chat is not available."
+          );
+
+          console.error(
+            "[Auth] Check that /script.js loaded successfully."
           );
 
           return;
@@ -203,7 +258,21 @@
 
 
         /*
-         * Fetch the initial token.
+         * Stop an existing refresh interval.
+         */
+        if (
+          reAuthenticateIntervalId !== null
+        ) {
+          clearInterval(
+            reAuthenticateIntervalId
+          );
+
+          reAuthenticateIntervalId = null;
+        }
+
+
+        /*
+         * Get initial JWT.
          */
         const token =
           await fetchToken();
@@ -211,7 +280,7 @@
 
         if (!token) {
           console.error(
-            "No JWT received. Login cancelled."
+            "[Auth] Initial authentication cancelled."
           );
 
           return;
@@ -222,29 +291,26 @@
          * Login.
          */
         console.log(
-          "Logging into Netomi..."
+          "[Auth] Calling Netomi.chat.login()..."
         );
-
 
         Netomi.chat.login(token);
 
 
-        /*
-         * Prevent duplicate refresh intervals.
-         */
-        if (
-          reAuthenticateIntervalId
-        ) {
-          clearInterval(
-            reAuthenticateIntervalId
-          );
-        }
+        console.log(
+          "[Auth] Login successful."
+        );
 
 
         /*
-         * Refresh authentication every
+         * ========================================================
+         * TOKEN REFRESH
+         * ========================================================
+         *
+         * Original working implementation refreshed every
          * 5 minutes.
          */
+
         reAuthenticateIntervalId =
           setInterval(
             () => {
@@ -254,11 +320,16 @@
                 !Netomi.chat
               ) {
                 console.error(
-                  "Netomi.chat is unavailable."
+                  "[Auth] Netomi.chat is unavailable."
                 );
 
                 return;
               }
+
+
+              console.log(
+                "[Auth] Starting token refresh..."
+              );
 
 
               Netomi.chat.authenticate(
@@ -268,13 +339,13 @@
 
                   try {
 
-                    const refreshedToken =
+                    const token =
                       await fetchToken();
 
 
-                    if (!refreshedToken) {
+                    if (!token) {
                       console.error(
-                        "Unable to obtain refreshed JWT."
+                        "[Auth] No refreshed token received."
                       );
 
                       handleAuthError();
@@ -284,22 +355,27 @@
 
 
                     console.log(
-                      "Sending refreshed JWT to Netomi..."
+                      "[Auth] Sending refreshed token to Netomi..."
                     );
 
 
                     /*
-                     * Send the new token to Netomi.
+                     * Send the refreshed token.
                      */
                     sendTokenToNetomi(
-                      refreshedToken,
+                      token,
                       handleAuthError
+                    );
+
+
+                    console.log(
+                      "[Auth] Token refresh completed."
                     );
 
                   } catch (error) {
 
                     console.error(
-                      "Authentication refresh failed:",
+                      "[Auth] Token refresh failed:",
                       error
                     );
 
@@ -312,15 +388,10 @@
             300000
           );
 
-
-        console.log(
-          "Authentication started successfully."
-        );
-
       } catch (error) {
 
         console.error(
-          "Authentication failed:",
+          "[Auth] Authentication failed:",
           error
         );
       }
@@ -329,14 +400,14 @@
 
     /*
      * ============================================================
-     * AUTHENTICATION ERROR HANDLER
+     * AUTH ERROR
      * ============================================================
      */
 
     function handleAuthError() {
 
       console.error(
-        "Netomi authentication error."
+        "[Auth] Netomi authentication error."
       );
     }
 
@@ -350,10 +421,10 @@
     function endAuth() {
 
       /*
-       * Stop token refresh.
+       * Stop refresh timer.
        */
       if (
-        reAuthenticateIntervalId
+        reAuthenticateIntervalId !== null
       ) {
 
         clearInterval(
@@ -365,7 +436,7 @@
 
 
       /*
-       * Logout from Netomi.
+       * Logout.
        */
       if (
         typeof Netomi !== "undefined" &&
@@ -375,7 +446,7 @@
         Netomi.chat.logout();
 
         console.log(
-          "Authentication cleared."
+          "[Auth] Logged out successfully."
         );
       }
     }
@@ -389,53 +460,39 @@
 
     async function manualLogin() {
 
-      try {
-
-        const token =
-          await fetchToken();
+      const token =
+        await fetchToken();
 
 
-        if (!token) {
-          console.error(
-            "Manual login failed: JWT not received."
-          );
-
-          return;
-        }
-
-
-        if (
-          typeof Netomi === "undefined" ||
-          !Netomi.chat
-        ) {
-          console.error(
-            "Netomi.chat is not available."
-          );
-
-          return;
-        }
-
-
-        Netomi.chat.login(token);
-
-
-        console.log(
-          "Manual login successful."
-        );
-
-      } catch (error) {
-
-        console.error(
-          "Manual login failed:",
-          error
-        );
+      if (!token) {
+        return;
       }
+
+
+      if (
+        typeof Netomi === "undefined" ||
+        !Netomi.chat
+      ) {
+        console.error(
+          "[Auth] Netomi.chat is not available."
+        );
+
+        return;
+      }
+
+
+      Netomi.chat.login(token);
+
+
+      console.log(
+        "[Auth] Manual login successful."
+      );
     }
 
 
     /*
      * ============================================================
-     * CLEAR NETOMI AUTHENTICATION
+     * CLEAR NETOMI AUTH
      * ============================================================
      */
 
@@ -482,7 +539,7 @@
 
 
       /*
-       * Reload page.
+       * Reload.
        */
       location.reload();
     }
