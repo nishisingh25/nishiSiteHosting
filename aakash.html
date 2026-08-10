@@ -1,100 +1,124 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=Standards" />
-  <title>Web Chat</title>
+  <title>Netomi Web Chat</title>
 </head>
 
 <body>
-  <button type="button" onclick="handleAuth()">Start Authentication</button>
-  <button type="button" onclick="endAuth()">Clear Authentication</button>
+
+  <button type="button" onclick="handleAuth()">
+    Start Authentication
+  </button>
+
+  <button type="button" onclick="endAuth()">
+    Clear Authentication
+  </button>
 
   <script>
-    (function () {
-      var ns = document.createElement("script");
-
-      ns.src = "https://chatapps-qa-a.netomi.com/app/script.js";
-      ns.type = "text/javascript";
-      ns.async = true;
-
-      ns.setAttribute(
-        "botRefId",
-        "47753183-8c01-4d49-bcfe-795770efc2a4"
-      );
-
-      ns.setAttribute("enableEventQueue", "true");
-      ns.setAttribute("debug", "true");
-
-      var s = document.getElementsByTagName("script")[0];
-      s.parentNode.insertBefore(ns, s);
-
-      ns.onload = function () {
-        console.log("Netomi script loaded");
-      };
-    })();
-
-    let reAuthenticateIntervalId = null;
-
     /*
      * ============================================================
-     * AUTHENTICATION
+     * NETOMI CONFIGURATION
      * ============================================================
      */
 
-    async function handleAuth() {
+    const BOT_REF_ID = "47753183-8c01-4d49-bcfe-795770efc2a4";
+
+    const NETOMI_SCRIPT =
+      "https://chatapps-qa-a.netomi.com/app/script.js";
+
+    const JWT_ENDPOINT =
+      "https://chatapps-qa-a.netomi.com/api/fetchJWT";
+
+    const AUTH_PAGE =
+      "https://revanshasti.github.io/Hosting-sites/Authentication.html";
+
+
+    /*
+     * ============================================================
+     * LOAD NETOMI SCRIPT
+     * ============================================================
+     */
+
+    (function () {
+      const ns = document.createElement("script");
+
+      ns.src = NETOMI_SCRIPT;
+      ns.type = "text/javascript";
+      ns.async = true;
+
+      ns.setAttribute("botRefId", BOT_REF_ID);
+
+      /*
+       * Use the QA/dynamic environment configuration.
+       */
+      ns.setAttribute("isDynamicEnv", "false");
+
+      /*
+       * Keep event queue enabled.
+       */
+      ns.setAttribute("enableEventQueue", "true");
+
+      /*
+       * Do NOT use debug=true here.
+       * That was required only for the localhost integration.
+       */
+
+      const firstScript =
+        document.getElementsByTagName("script")[0];
+
+      firstScript.parentNode.insertBefore(
+        ns,
+        firstScript
+      );
+
+      ns.onload = function () {
+        console.log("Netomi script loaded successfully.");
+      };
+
+      ns.onerror = function (error) {
+        console.error(
+          "Failed to load Netomi script:",
+          error
+        );
+      };
+    })();
+
+
+    /*
+     * ============================================================
+     * AUTHENTICATION STATE
+     * ============================================================
+     */
+
+    let reAuthenticateIntervalId = null;
+
+
+    /*
+     * ============================================================
+     * FETCH JWT
+     * ============================================================
+     */
+
+    async function fetchToken() {
       try {
-        /*
-         * Fetch a new JWT for token renewal.
-         */
-        async function renewToken() {
-          const tokenApiCall = await fetch(
-            "https://chatapps-qa-a.netomi.com/api/fetchJWT",
-            {
-              method: "POST",
-              headers: {
-                href:
-                  "https://revanshasti.github.io/Hosting-sites/Authentication.html",
-
-                "Content-Type": "application/json",
-
-                "x-token-expiry": "10m",
-
-                "x-bot-ref-id":
-                  "47753183-8c01-4d49-bcfe-795770efc2a4",
-
-                "x-user-details": JSON.stringify({
-                  name: "Revan Shasti",
-                  externalId: "revan@gmail.com"
-                })
-              }
-            }
-          );
-
-          const { token } = await tokenApiCall.json();
-
-          return token;
-        }
-
-        /*
-         * Initial JWT request.
-         */
-        const tokenApiCall = await fetch(
-          "https://chatapps-qa-a.netomi.com/api/fetchJWT",
+        const response = await fetch(
+          JWT_ENDPOINT,
           {
             method: "POST",
+
             headers: {
-              href:
-                "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+              "href": AUTH_PAGE,
 
               "Content-Type": "application/json",
 
               "x-token-expiry": "10m",
 
-              "x-bot-ref-id":
-                "47753183-8c01-4d49-bcfe-795770efc2a4",
+              "x-bot-ref-id": BOT_REF_ID,
 
               "x-user-details": JSON.stringify({
                 name: "Revan Shasti",
@@ -104,72 +128,167 @@
           }
         );
 
-        const { token } = await tokenApiCall.json();
-
-        console.log("Initial JWT received:", token);
-
-        /*
-         * Login using the new Netomi.chat API.
-         */
-        if (token) {
-          Netomi.chat.login(token);
+        if (!response.ok) {
+          throw new Error(
+            `JWT request failed: ${response.status} ${response.statusText}`
+          );
         }
 
+        const responseData = await response.json();
+
+        console.log(
+          "JWT response received:",
+          responseData
+        );
+
+        return responseData.token || "";
+
+      } catch (error) {
+        console.error(
+          "Failed to fetch JWT:",
+          error
+        );
+
+        return "";
+      }
+    }
+
+
+    /*
+     * ============================================================
+     * START AUTHENTICATION
+     * ============================================================
+     */
+
+    async function handleAuth() {
+      try {
+
         /*
-         * Prevent duplicate authentication intervals.
+         * Make sure Netomi has loaded before attempting login.
+         */
+        if (
+          typeof Netomi === "undefined" ||
+          !Netomi.chat
+        ) {
+          console.error(
+            "Netomi.chat is not available yet."
+          );
+
+          return;
+        }
+
+
+        /*
+         * Fetch the initial JWT.
+         */
+        const token = await fetchToken();
+
+
+        if (!token) {
+          console.error(
+            "No JWT token received. Authentication aborted."
+          );
+
+          return;
+        }
+
+
+        /*
+         * Initial login.
+         */
+        console.log(
+          "Logging in to Netomi..."
+        );
+
+        Netomi.chat.login(token);
+
+
+        /*
+         * Prevent multiple refresh intervals if the
+         * Start Authentication button is clicked again.
          */
         if (reAuthenticateIntervalId) {
-          clearInterval(reAuthenticateIntervalId);
+          clearInterval(
+            reAuthenticateIntervalId
+          );
         }
+
 
         /*
          * Re-authenticate every 5 minutes.
+         *
+         * This matches the authentication interval
+         * from the original working implementation.
          */
-        reAuthenticateIntervalId = setInterval(() => {
-          Netomi.chat.authenticate(async (sendTokenToNetomi) => {
-            try {
-              const tokenApiCall = await fetch(
-                "https://chatapps-qa-a.netomi.com/api/fetchJWT",
-                {
-                  method: "POST",
-                  headers: {
-                    href:
-                      "https://revanshasti.github.io/Hosting-sites/Authentication.html",
+        reAuthenticateIntervalId = setInterval(
+          () => {
 
-                    "Content-Type": "application/json",
-
-                    "x-token-expiry": "10m",
-
-                    "x-bot-ref-id":
-                      "47753183-8c01-4d49-bcfe-795770efc2a4",
-
-                    "x-user-details": JSON.stringify({
-                      name: "Revan Shasti",
-                      externalId: "revan@gmail.com"
-                    })
-                  }
-                }
-              );
-
-              const tokenResp = await tokenApiCall.json();
-
-              console.log("Refreshed JWT received:", tokenResp);
-
-              sendTokenToNetomi(
-                tokenResp,
-                renewToken
-              );
-            } catch (error) {
+            if (
+              typeof Netomi === "undefined" ||
+              !Netomi.chat
+            ) {
               console.error(
-                "Error refreshing authentication token:",
-                error
+                "Netomi.chat is not available during re-authentication."
               );
-            }
-          });
-        }, 300000);
 
-        console.log("Authentication started successfully");
+              return;
+            }
+
+
+            Netomi.chat.authenticate(
+              async (sendTokenToNetomi) => {
+
+                try {
+
+                  const token =
+                    await fetchToken();
+
+
+                  if (!token) {
+                    console.error(
+                      "No refreshed JWT received."
+                    );
+
+                    return;
+                  }
+
+
+                  console.log(
+                    "Sending refreshed JWT to Netomi..."
+                  );
+
+
+                  /*
+                   * Pass the refreshed token to Netomi.
+                   */
+                  sendTokenToNetomi(
+                    token,
+                    handleAuthError
+                  );
+
+                } catch (error) {
+
+                  console.error(
+                    "Token refresh failed:",
+                    error
+                  );
+
+                  handleAuthError();
+                }
+              }
+            );
+
+          },
+          300000
+        );
+
+
+        console.log(
+          "Authentication started successfully."
+        );
+
       } catch (error) {
+
         console.error(
           "Authentication failed:",
           error
@@ -177,99 +296,156 @@
       }
     }
 
+
     /*
      * ============================================================
-     * LOGOUT
+     * TOKEN AUTHENTICATION ERROR
+     * ============================================================
+     */
+
+    function handleAuthError() {
+      console.error(
+        "Netomi authentication/token refresh failed."
+      );
+    }
+
+
+    /*
+     * ============================================================
+     * END AUTHENTICATION
      * ============================================================
      */
 
     function endAuth() {
+
+      /*
+       * Stop token refresh.
+       */
       if (reAuthenticateIntervalId) {
-        clearInterval(reAuthenticateIntervalId);
+
+        clearInterval(
+          reAuthenticateIntervalId
+        );
+
         reAuthenticateIntervalId = null;
       }
 
+
+      /*
+       * Logout from Netomi.
+       */
       if (
         typeof Netomi !== "undefined" &&
         Netomi.chat
       ) {
-        Netomi.chat.logout();
-      }
 
-      console.log("Authentication cleared");
+        Netomi.chat.logout();
+
+        console.log(
+          "Netomi authentication cleared."
+        );
+      }
     }
+
 
     /*
      * ============================================================
      * MANUAL LOGIN
      * ============================================================
+     *
+     * Optional helper if you need to manually login again.
      */
 
     async function manualLogin() {
-      try {
-        const tokenApiCall = await fetch(
-          "https://chatapps-qa-a.netomi.com/api/fetchJWT",
-          {
-            method: "POST",
-            headers: {
-              href:
-                "https://revanshasti.github.io/Hosting-sites/Authentication.html",
 
-              "Content-Type": "application/json",
+      const token =
+        await fetchToken();
 
-              "x-token-expiry": "10m",
 
-              "x-bot-ref-id":
-                "47753183-8c01-4d49-bcfe-795770efc2a4",
-
-              "x-user-details": JSON.stringify({
-                name: "Revan Shasti",
-                externalId: "revan@gmail.com"
-              })
-            }
-          }
-        );
-
-        const { token } = await tokenApiCall.json();
-
-        if (token) {
-          Netomi.chat.login(token);
-        }
-      } catch (error) {
+      if (!token) {
         console.error(
-          "Manual login failed:",
-          error
+          "Manual login failed: no token received."
         );
+
+        return;
       }
+
+
+      if (
+        typeof Netomi === "undefined" ||
+        !Netomi.chat
+      ) {
+        console.error(
+          "Netomi.chat is not available."
+        );
+
+        return;
+      }
+
+
+      Netomi.chat.login(token);
+
+      console.log(
+        "Manual login successful."
+      );
     }
+
 
     /*
      * ============================================================
-     * CLEAR NETOMI LOCAL AUTHENTICATION
+     * CLEAR NETOMI LOCAL STORAGE / COOKIES
      * ============================================================
      */
 
     function clearAuth() {
-      Object.keys(localStorage)
-        .filter((key) => key.startsWith("net_"))
-        .forEach((key) => {
-          localStorage.removeItem(key);
-        });
 
+      /*
+       * Clear Netomi localStorage entries.
+       */
+      Object.keys(localStorage)
+        .filter(
+          (key) => key.startsWith("net_")
+        )
+        .forEach(
+          (key) => {
+            localStorage.removeItem(key);
+          }
+        );
+
+
+      /*
+       * Clear Netomi cookies.
+       */
       document.cookie
         .split(";")
-        .forEach((cookie) => {
-          const name = cookie.split("=")[0].trim();
+        .forEach(
+          (cookie) => {
 
-          if (name.startsWith("net_")) {
-            document.cookie =
-              `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            const name =
+              cookie
+                .split("=")[0]
+                .trim();
+
+
+            if (
+              name.startsWith("net_")
+            ) {
+
+              document.cookie =
+                `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            }
           }
-        });
+        );
 
+
+      /*
+       * Reload the page.
+       */
       location.reload();
     }
+
   </script>
 
 </body>
+
 </html>
