@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Standards" />
+    <title>Web Chat</title>
+  </head>
+  <body>
+    <button onclick="handleAuth()">Start Authentication</button>
+    <button onclick="endAuth()">Clear Authentication</button>
+  </body>
+
+  <script>
+    (function() {
+      var ns = document.createElement('script');
+      ns.src = ('https://chatapps-qa-a.netomi.com/app/script.js');
+      ns.type = 'text/javascript';
+      ns.async = true;
+      ns.setAttribute('botRefId', '8170350d-c7c4-4aaa-b42f-9d8b81350e5f');
+      ns.setAttribute('isDynamicEnv', 'false');
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(ns, s);
+      ns.onload = function () {
+        window.NETOMI_WEB_WIDGET.init(() => { /* add publish events here */ })
+      }
+    })();
+  
+    let id = null;
+
+    async function handleAuth() {
+
+      async function renewToken() {
+        const tokenApiCall = await fetch('https://chatapps-qa-a.netomi.com/api/fetchJWT',  {
+          method: 'post',
+          headers: {
+            'href':'https://nishisingh25.github.io/nishiSiteHosting/JwtAuthenticationQA.html',
+            'Content-Type': 'application/json',
+            'x-token-expiry': '10m',
+            'x-bot-ref-id':'8170350d-c7c4-4aaa-b42f-9d8b81350e5f',
+            'x-user-details': JSON.stringify({"name": "Revan Shasti", "externalId": "revan@gmail.com"})
+          }
+        });
+        const { token } = await tokenApiCall.json();
+        return token;
+      }
+    
+      const tokenApiCall = await fetch('https://chatapps-qa-a.netomi.com/api/fetchJWT',  {
+        method: 'post', 
+        headers: { 
+          'href':'https://nishisingh25.github.io/nishiSiteHosting/JwtAuthenticationQA.html',
+          'Content-Type': 'application/json', 
+          'x-token-expiry': '10m', 
+          'x-bot-ref-id':'8170350d-c7c4-4aaa-b42f-9d8b81350e5f', 
+          'x-user-details': JSON.stringify({"name": "Revan Shasti", "externalId": "revan@gmail.com"}) 
+        }
+      });
+
+      const { token } = await tokenApiCall.json();
+
+      window.NETOMI_WEB_WIDGET.authModule.login(token);
+
+      id = setInterval(() => {
+        window.NETOMI_WEB_WIDGET.authModule.jwtAuth(async sendTokenToNetomi => {
+          
+          const tokenApiCall = await fetch('https://chatapps-qa-a.netomi.com/api/fetchJWT',  {
+            method: 'post',
+            headers: {
+              'href':'https://nishisingh25.github.io/nishiSiteHosting/JwtAuthenticationQA.html',
+              'Content-Type': 'application/json',
+              'x-token-expiry': '10m',
+              'x-bot-ref-id':'8170350d-c7c4-4aaa-b42f-9d8b81350e5f',
+              'x-user-details': JSON.stringify({"name": "Revan Shasti", "externalId": "revan@gmail.com"})
+            }
+          });
+
+          const tokenResp = await tokenApiCall.json();
+          sendTokenToNetomi(tokenResp, renewToken);
+        })      
+      }, 300000);
+    }
+
+    function endAuth() {
+      clearInterval(id);
+      window.NETOMI_WEB_WIDGET.authModule.logout();
+    }
+  </script>
+</html>
