@@ -9,6 +9,8 @@
 </head>
 <body>
     <button onclick="Netomi.chat.openWidget()">Support</button>
+    <div id="chat-error" role="alert" style="display:none; color:#b00020; margin-top:12px;"></div>
+
     <script>
       (function() {
         var ns = document.createElement('script');
@@ -19,9 +21,95 @@
         ns.setAttribute("enableEventQueue", "true");
         var s = document.getElementsByTagName('script')[0];
         s.parentNode.insertBefore(ns, s);
+
+        // Maps a Netomi exceptionCode (and statusCode, if any) to a readable message.
+        function getErrorMessage(error) {
+          var code = error && error.exceptionCode;
+          var status = error && error.statusCode;
+
+          switch (code) {
+            case 'REQUIRED_BOT_REFERENCE_ID':
+              return 'The chat could not start because the bot ID is missing. ' +
+                     'Set the botRefId attribute on the chat script.';
+
+            case 'BOT_CONFIG_FETCH_FAILED':
+              if (status === undefined || status === null) {
+                return 'The chat could not load its settings. ' +
+                       'You may be offline, so check your connection and try again.';
+              }
+              if (status === 403 || status === 404) {
+                return 'The chat could not load its settings (' + status + '). ' +
+                       'The bot ID may be wrong or not found. Check the botRefId.';
+              }
+              if (status >= 500) {
+                return 'The chat service had a problem loading its settings (' + status + '). ' +
+                       'Please try again later.';
+              }
+              return 'The chat could not load its settings (' + status + ').';
+
+            default:
+              return (error && error.statusMessage) ||
+                     'The chat could not start because of an unknown error.';
+          }
+        }
+
+        // Shows the message on the page so visitors are not left with a silent failure.
+        function showErrorOnPage(message) {
+          var box = document.getElementById('chat-error');
+          if (box) {
+            box.textContent = 'Support chat is currently unavailable.';
+            box.style.display = 'block';
+          }
+        }
+
         ns.onload = function () {
+
+          // ========== STARTUP ERRORS ONLY ==========
+          /**
+           * @param {Object} error
+           * @param {string} error.exceptionCode - REQUIRED_BOT_REFERENCE_ID or BOT_CONFIG_FETCH_FAILED
+           * @param {number} [error.statusCode] - HTTP status (e.g. 403); absent if the bot ID is
+           *                                      missing or the user is offline
+           * @param {string} error.statusMessage - Raw message, e.g. "Error while fetching Bot JSON"
+           */
           Netomi.chat.onInitError(function (error) {
-            console.log(error.exceptionCode, error.statusCode, error.statusMessage)
+            var message = getErrorMessage(error);
+
+            console.error('[Netomi Init Error] ' + message, {
+              exceptionCode: error.exceptionCode,
+              statusCode: error.statusCode,
+              statusMessage: error.statusMessage
+            });
+
+            showErrorOnPage(message);
+          });
+
+          // ========== ALL SDK ERRORS ==========
+          // Startup errors arrive here too (event_sub_type 'initialization_error'),
+          // so they are skipped to avoid handling the same error twice.
+          /**
+           * @param {Object} error
+           * @param {string} error.event_type - 'error'
+           * @param {string} error.event_sub_type - e.g. 'initialization_error'
+           * @param {string} error.type - e.g. 'config_fetch_failed'
+           * @param {string} error.exceptionCode
+           * @param {number} [error.statusCode]
+           * @param {string} error.statusMessage
+           * @param {string} error.error - Short description
+           * @param {string} error.error_details - Combined details string
+           */
+          Netomi.chat.onError(function (error) {
+            if (error.event_sub_type === 'initialization_error') {
+              return;
+            }
+
+            console.error('[Netomi SDK Error] ' + getErrorMessage(error), {
+              subType: error.event_sub_type,
+              exceptionCode: error.exceptionCode,
+              statusCode: error.statusCode,
+              statusMessage: error.statusMessage,
+              details: error.error_details
+            });
           });
 
           // ========== ON_NEW_CONVERSATION Event ==========
